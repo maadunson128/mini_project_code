@@ -1,0 +1,117 @@
+// Firebase URL and API key
+const FIREBASE_URL = 'https://water-monitoring-d4064-default-rtdb.asia-southeast1.firebasedatabase.app/';
+const API_KEY = 'AIzaSyDCwzjvqjrB5DIN8NQvSq_bsZM_FLs_U1c';
+
+const LEAK_THRESHOLD = 200; // Leak threshold in liters
+
+function updateGoogleSheetWithNewData() {
+  const lastIdResponse = UrlFetchApp.fetch(${FIREBASE_URL}lastID.json?auth=${API_KEY});
+  const lastIdInFirebase = JSON.parse(lastIdResponse.getContentText());
+
+  if (lastIdInFirebase === null || lastIdInFirebase === undefined) {
+    Logger.log('No data in Firebase.');
+    return;
+  }
+
+  const waterDataResponse = UrlFetchApp.fetch(${FIREBASE_URL}waterData.json?auth=${API_KEY});
+  const waterData = JSON.parse(waterDataResponse.getContentText());
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet1 = ss.getSheetByName('Sheet1');
+  const sheet2 = ss.getSheetByName('Sheet2');
+  const sheet3 = ss.getSheetByName('Sheet3');
+
+  const lastRow = sheet1.getLastRow();
+  const lastUniqueIdInSheet = lastRow > 1 ? sheet1.getRange(lastRow, 1).getValue() : 0;
+
+  let previousWaterVolume = null;
+  let previousTimestamp = null;
+
+  if (lastRow > 1) {
+    previousWaterVolume = sheet1.getRange(lastRow, 4).getValue();
+    previousTimestamp = new Date(sheet1.getRange(lastRow, 2).getValue());
+  }
+
+  if (parseInt(lastUniqueIdInSheet) === parseInt(lastIdInFirebase)) {
+    Logger.log('No new data to process.');
+    return;
+  }
+
+  let newDataToAppend = [];
+  let dailyConsumptions = {};
+  let monthlyConsumptions = {};
+  
+  let newUniqueIds = Object.keys(waterData)
+    .map(id => parseInt(id))
+    .filter(id => id > lastUniqueIdInSheet)
+    .sort((a, b) => a - b);
+
+  for (const uniqueId of newUniqueIds) {
+    const entry = waterData[uniqueId];
+    const timestamp = new Date(entry.timestamp);
+    const waterLevel = entry.waterLevel;
+    const waterVolume = entry.waterVolume;
+
+    newDataToAppend.push([uniqueId, entry.timestamp, waterLevel, waterVolume]);
+
+    if (previousWaterVolume !== null) {
+      let consumption = previousWaterVolume - waterVolume;
+      if (consumption > 0) {
+        const date = Utilities.formatDate(timestamp, Session.getScriptTimeZone(), "yyyy-MM-dd");
+        const month = Utilities.formatDate(timestamp, Session.getScriptTimeZone(), "yyyy-MM");
+
+        dailyConsumptions[date] = (dailyConsumptions[date] || 0) + consumption;
+        monthlyConsumptions[month] = (monthlyConsumptions[month] || 0) + consumption;
+      }
+    }
+    previousWaterVolume = waterVolume;
+    previousTimestamp = timestamp;
+  }
+
+  if (newDataToAppend.length > 0) {
+    sheet1.getRange(sheet1.getLastRow() + 1, 1, newDataToAppend.length, 4).setValues(newDataToAppend);
+    Logger.log(${newDataToAppend.length} new rows added to Sheet1.);
+  } else {
+    Logger.log('No new data to append to Sheet1.');
+  }
+
+  updateConsumptionSheet(sheet2, dailyConsumptions);
+  updateConsumptionSheet(sheet3, monthlyConsumptions);
+
+  
+}
+
+function updateConsumptionSheet(sheet, consumptions) {
+  const data = sheet.getDataRange().getValues();
+  const existingKeys = {};
+
+  for (let rowIndex = 2; rowIndex <= data.length; rowIndex++) {
+    let keyCell = data[rowIndex - 1][0];
+    let key;
+    if (keyCell instanceof Date) {
+      const format = keyCell.getDate() === 1 ? "yyyy-MM" : "yyyy-MM-dd";
+      key = Utilities.formatDate(keyCell, Session.getScriptTimeZone(), format);
+    } else {
+      key = keyCell.toString().trim();
+    }
+    existingKeys[key] = rowIndex;
+  }
+
+  for (const key in consumptions) {
+    if (consumptions.hasOwnProperty(key)) {
+      const consumption = consumptions[key];
+      if (existingKeys.hasOwnProperty(key)) {
+        const rowIndex = existingKeys[key];
+        const existingValue = sheet.getRange(rowIndex, 2).getValue();
+        sheet.getRange(rowIndex, 2).setValue(existingValue + consumption);
+      } else {
+        sheet.appendRow([key, consumption]);
+      }
+    }
+  }
+}
+
+// Daily leak check to monitor water consumption in specified time windows
+function dailyLeakCheck() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const dataSheet = ss.getShe
