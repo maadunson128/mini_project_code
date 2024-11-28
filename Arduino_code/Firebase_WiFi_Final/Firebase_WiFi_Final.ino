@@ -9,9 +9,9 @@
 
 // Provide the required Firebase credentials and API key
 #define WIFI_SSID "Pradeep Kumar"
-#define WIFI_PASSWORD "26062606"
-#define API_KEY "AIzaSyDCwzjvqjrB5DIN8NQvSq_bsZM_FLs_U1c"
-#define DATABASE_URL "https://water-monitoring-d4064-default-rtdb.asia-southeast1.firebasedatabase.app/"  // Firebase Realtime Database URL
+#define WIFI_PASSWORD ""
+#define API_KEY ""
+#define DATABASE_URL ""  // Firebase Realtime Database URL
 
 FirebaseData fbdo;  // Firebase object
 FirebaseAuth auth;  // Firebase authentication object
