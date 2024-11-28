@@ -26,8 +26,8 @@ const char apn[] = "airtelgprs.com";  // Change this as per your SIM card operat
 /*********************************************
   SECTION: Firebase Settings
 *********************************************/
-const char* FIREBASE_HOST = "https://water-monitoring-d4064-default-rtdb.asia-southeast1.firebasedatabase.app/";  // Your Firebase Realtime Database URL (without 'https://')
-const char* FIREBASE_API_KEY = "AIzaSyDCwzjvqjrB5DIN8NQvSq_bsZM_FLs_U1c";   // Your Firebase API key for anonymous authentication
+const char* FIREBASE_HOST = "";  // Your Firebase Realtime Database URL (without 'https://')
+const char* FIREBASE_API_KEY = "";   // Your Firebase API key for anonymous authentication
 
 TinyGsm modem(SerialAT);           // TinyGSM instance for the modem
 TinyGsmClient client(modem);       // TinyGSM client

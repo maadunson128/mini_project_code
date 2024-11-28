@@ -27,8 +27,8 @@ const char apn[] = "bsnlnet";  // Change this as per your SIM card operator
 /*********************************************
   SECTION: Set Thingspeak API key and channel details
 *********************************************/
-unsigned long myChannelNumber = 2711202;       // Replace with your Thingspeak channel ID
-const char* myWriteAPIKey = "7902YSZ23JA2GUW0";  // Replace with your Thingspeak API key
+unsigned long myChannelNumber = ;       // Replace with your Thingspeak channel ID
+const char* myWriteAPIKey = "";  // Replace with your Thingspeak API key
 
 TinyGsm modem(SerialAT);           // TinyGSM instance for the modem
 TinyGsmClient client(modem);       // TinyGSM client for Thingspeak        // ThingSpeak instance

@@ -1,6 +1,6 @@
 // Replace with your Firebase Realtime Database URL and API key
-const FIREBASE_URL = 'https://water-monitoring-d4064-default-rtdb.asia-southeast1.firebasedatabase.app/waterData.json';
-const API_KEY = 'AIzaSyDCwzjvqjrB5DIN8NQvSq_bsZM_FLs_U1c';
+const FIREBASE_URL = '';
+const API_KEY = '';
 
 function loadExistingFirebaseData() {
   // Fetch existing data from Firebase

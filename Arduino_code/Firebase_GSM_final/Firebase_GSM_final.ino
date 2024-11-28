@@ -22,8 +22,8 @@
 const char apn[] = "airtelgprs.com"; // Change to 'airtelgprs.com' if using Airtel SIM
 
 // Firebase credentials
-#define API_KEY "AIzaSyDCwzjvqjrB5DIN8NQvSq_bsZM_FLs_U1c"
-#define DATABASE_URL "https://water-monitoring-d4064-default-rtdb.asia-southeast1.firebasedatabase.app/" 
+#define API_KEY ""
+#define DATABASE_URL "" 
 
 FirebaseData fbdo;
 FirebaseAuth auth;
