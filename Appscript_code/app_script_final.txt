@@ -2,10 +2,10 @@
 const FIREBASE_URL = 'https://water-monitoring-d4064-default-rtdb.asia-southeast1.firebasedatabase.app/';
 const API_KEY = 'AIzaSyDCwzjvqjrB5DIN8NQvSq_bsZM_FLs_U1c';
 
-const LEAK_THRESHOLD = 200; // Leak threshold in liters
+const LEAK_THRESHOLD = 0.2; // Leak threshold in liters
 
 function updateGoogleSheetWithNewData() {
-  const lastIdResponse = UrlFetchApp.fetch(${FIREBASE_URL}lastID.json?auth=${API_KEY});
+  const lastIdResponse = UrlFetchApp.fetch(`${FIREBASE_URL}lastID.json?auth=${API_KEY}`);
   const lastIdInFirebase = JSON.parse(lastIdResponse.getContentText());
 
   if (lastIdInFirebase === null || lastIdInFirebase === undefined) {
@@ -13,13 +13,13 @@ function updateGoogleSheetWithNewData() {
     return;
   }
 
-  const waterDataResponse = UrlFetchApp.fetch(${FIREBASE_URL}waterData.json?auth=${API_KEY});
+  const waterDataResponse = UrlFetchApp.fetch(`${FIREBASE_URL}waterData.json?auth=${API_KEY}`);
   const waterData = JSON.parse(waterDataResponse.getContentText());
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet1 = ss.getSheetByName('Sheet1');
-  const sheet2 = ss.getSheetByName('Sheet2');
-  const sheet3 = ss.getSheetByName('Sheet3');
+  const sheet1 = ss.getSheetByName('Tank Level');
+  const sheet2 = ss.getSheetByName('Daily Consumption');
+  const sheet3 = ss.getSheetByName('Monthly Consumption');
 
   const lastRow = sheet1.getLastRow();
   const lastUniqueIdInSheet = lastRow > 1 ? sheet1.getRange(lastRow, 1).getValue() : 0;
@@ -70,7 +70,7 @@ function updateGoogleSheetWithNewData() {
 
   if (newDataToAppend.length > 0) {
     sheet1.getRange(sheet1.getLastRow() + 1, 1, newDataToAppend.length, 4).setValues(newDataToAppend);
-    Logger.log(${newDataToAppend.length} new rows added to Sheet1.);
+    Logger.log(`${newDataToAppend.length} new rows added to Sheet1.`);
   } else {
     Logger.log('No new data to append to Sheet1.');
   }
@@ -114,4 +114,61 @@ function updateConsumptionSheet(sheet, consumptions) {
 // Daily leak check to monitor water consumption in specified time windows
 function dailyLeakCheck() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const dataSheet = ss.getShe
+  const dataSheet = ss.getSheetByName('Tank Level');
+  const leakSheet = ss.getSheetByName('DailyLeakSummary') || ss.insertSheet('DailyLeakSummary');
+
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const startOfYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+
+  let window1Consumption = checkLeakWindow(dataSheet, startOfToday, 0, 6);
+  let window2Consumption = checkLeakWindow(dataSheet, startOfYesterday, 18, 24);
+
+  let dateStr = Utilities.formatDate(today, Session.getScriptTimeZone(), "yyyy-MM-dd");
+  
+  // Check if each window consumption exceeds the threshold and store leak amount if so
+  let window1LeakStatus = window1Consumption > LEAK_THRESHOLD ? "Leak Detected" : "No Leak";
+  let window2LeakStatus = window2Consumption > LEAK_THRESHOLD ? "Leak Detected" : "No Leak";
+  let window1LeakAmount = window1LeakStatus === "Leak Detected" ? window1Consumption : 0;
+  let window2LeakAmount = window2LeakStatus === "Leak Detected" ? window2Consumption : 0;
+
+  // Append the data to the 'DailyLeakSummary' sheet
+  leakSheet.appendRow([dateStr, window1LeakStatus, window1LeakAmount, window2LeakStatus, window2LeakAmount]);
+}
+
+function checkLeakWindow(sheet, day, startHour, endHour) {
+  const data = sheet.getDataRange().getValues();
+  let totalConsumption = 0;
+  let previousVolume = null;
+
+  for (let i = 1; i < data.length; i++) {
+    let entryDate = new Date(data[i][1]);
+    let entryHour = entryDate.getHours();
+
+    if (entryDate >= day && entryHour >= startHour && entryHour < endHour) {
+      let waterVolume = data[i][3];
+      if (previousVolume !== null) {
+        let consumption = previousVolume - waterVolume;
+        if (consumption > 0) {
+          totalConsumption += consumption;
+        }
+      }
+      previousVolume = waterVolume;
+    }
+  }
+
+  return totalConsumption;
+}
+
+
+function createDailyLeakTrigger() {
+  // Creates a time-based trigger to run 'dailyLeakCheck' every day at 6:00 AM
+  ScriptApp.newTrigger('dailyLeakCheck')  // The function to be triggered
+    .timeBased()                          // Time-based trigger
+    .atHour(6)                            // Runs at 6:00 AM
+    .everyDays(1)                         // Repeats daily
+    .create();                            // Creates the trigger
+}
