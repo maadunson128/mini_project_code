@@ -1,8 +1,8 @@
 // Firebase URL and API key
-const FIREBASE_URL = 'https://water-monitoring-d4064-default-rtdb.asia-southeast1.firebasedatabase.app/';
-const API_KEY = 'AIzaSyDCwzjvqjrB5DIN8NQvSq_bsZM_FLs_U1c';
+const FIREBASE_URL = '';
+const API_KEY = '';
 
-const LEAK_THRESHOLD = 0.2; // Leak threshold in liters
+const LEAK_THRESHOLD = 200; // Leak threshold in liters
 
 function updateGoogleSheetWithNewData() {
   const lastIdResponse = UrlFetchApp.fetch(`${FIREBASE_URL}lastID.json?auth=${API_KEY}`);
